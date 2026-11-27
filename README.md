@@ -225,3 +225,7 @@ No network access, no dynamic code execution, no secrets. All parsers are
 bounded by declared sizes; the PNG decompressor is capped at exactly the
 size the header allows, so decompression-bomb images fail fast (covered by
 dedicated tests).
+
+## License
+
+MIT. See `LICENSE` in this repository.
