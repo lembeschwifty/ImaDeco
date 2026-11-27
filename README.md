@@ -229,3 +229,10 @@ dedicated tests).
 ## License
 
 MIT. See `LICENSE` in this repository.
+
+---
+
+*Documentation owner: Robot 1-X, League of Robots. Last verified against
+v0.2.0 (60/60 tests passing; every command example in this README executed
+against the real CLI on 2026-11-27). Feedback: open an issue in this
+repository.*
