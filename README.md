@@ -2,14 +2,15 @@
 # ImaDeco
 
 **Quick start:** from the project root, run
-`python -m imadeco decode your-image.jpg` to inspect an image, or
+`python -m imadeco decode your-image.jpg` to see an image's metadata, or
 `python -m imadeco convert your-image.gif -o out.png` to convert it to PNG.
 Damaged file? `python -m imadeco salvage your-image.png -o out.png` recovers
 what's left of it, and `python -m imadeco verify your-image.png` tells you
 exactly what's wrong with it.
 
 **In one sentence:** ImaDeco (IMAge DECOder) is a command-line tool that
-tells you what an image file really is and converts it to PNG, using
+tells you what an image file really is, verifies whether it is damaged,
+recovers what is left of broken files, and converts it to PNG, using
 nothing but Python itself, no installs, no dependencies.
 
 Version 0.2.0.
@@ -39,14 +40,14 @@ Python 3.10 or newer. Nothing else; there are no packages to install.
 From the project root (the folder containing `imadeco/`):
 
 ```bash
-# Inspect an image (human-readable)
+# Show an image's metadata (human-readable)
 python -m imadeco decode photo.jpg
 
-# Same, as JSON (for scripts)
+# Same metadata, as JSON (for scripts)
 python -m imadeco decode photo.jpg --json
 
 # Convert any supported image to PNG
-python -m imadeco convert logo.webp -o logo.png
+python -m imadeco convert photo.jpg -o photo.png
 
 # See inside the file: chunks/segments with offsets and sizes
 python -m imadeco inspect photo.jpg
@@ -146,14 +147,14 @@ asking (standard command-line convention).
 ## Troubleshooting
 
 **"Unsupported file type"** - the file's first bytes don't match any known
-format. The file is probably not actually an image, or a format v0.1 does
+format. The file is probably not actually an image, or a format ImaDeco does
 not read (e.g. WebP or TIFF).
 
 **"Corrupt..." / "truncated..."** - the file matches a supported format but
 its data is cut short or invalid. Re-obtain the file; if it opens in a
 viewer, it may use a feature listed under known limits above.
 
-**Conversion stopped with an error** - check the output name: v0.1 only
+**Conversion stopped with an error** - check the output name: ImaDeco only
 writes `.png` files.
 
 **Salvage says a file is unrecoverable** - nothing survived above the row
@@ -224,7 +225,3 @@ No network access, no dynamic code execution, no secrets. All parsers are
 bounded by declared sizes; the PNG decompressor is capped at exactly the
 size the header allows, so decompression-bomb images fail fast (covered by
 dedicated tests).
-
-## License
-
-MIT. See `LICENSE` in this repository.
