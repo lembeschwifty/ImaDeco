@@ -2,9 +2,12 @@
 
 import unittest
 
-import fixtures
 from imadeco.report import walk
 from imadeco.exceptions import UnsupportedFormatError
+try:
+    from tests import fixtures
+except ImportError:  # running from inside the tests directory
+    import fixtures
 
 
 def _png_bytes(w=8, h=6):
@@ -112,4 +115,3 @@ class TestWalkUnknown(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -5,7 +5,10 @@ in tests/fixtures.py, so expected pixels are ground truth.
 import unittest
 
 from imadeco import DECODERS
-from fixtures import make_bmp24, make_bmp8
+try:
+    from tests.fixtures import make_bmp24, make_bmp8
+except ImportError:  # running from inside the tests directory
+    from fixtures import make_bmp24, make_bmp8
 
 
 def decode(bmp_bytes):
@@ -73,4 +76,3 @@ class BmpErrorTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

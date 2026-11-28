@@ -106,8 +106,9 @@ class PngDecoder(Decoder):
                       "interlaced": False},
         )
 
-    @staticmethod
-    def _defilter(raw, height, bytes_per_row, channels):
+    @classmethod
+    def _defilter(cls, raw, height, bytes_per_row, channels):
+        """Strict full-image defilter: every row must be present and valid."""
         rows = []
         prev = bytearray(bytes_per_row)
         pos = 0
@@ -117,29 +118,7 @@ class PngDecoder(Decoder):
             ftype = raw[pos]
             row = bytearray(raw[pos + 1: pos + 1 + bytes_per_row])
             pos += 1 + bytes_per_row
-            if ftype == 0:
-                pass
-            elif ftype == 1:  # Sub
-                for i in range(channels, bytes_per_row):
-                    row[i] = (row[i] + row[i - channels]) & 0xFF
-            elif ftype == 2:  # Up
-                for i in range(bytes_per_row):
-                    row[i] = (row[i] + prev[i]) & 0xFF
-            elif ftype == 3:  # Average
-                for i in range(bytes_per_row):
-                    left = row[i - channels] if i >= channels else 0
-                    row[i] = (row[i] + ((left + prev[i]) >> 1)) & 0xFF
-            elif ftype == 4:  # Paeth
-                for i in range(bytes_per_row):
-                    a = row[i - channels] if i >= channels else 0
-                    b = prev[i]
-                    c = prev[i - channels] if i >= channels else 0
-                    p = a + b - c
-                    pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
-                    pred = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
-                    row[i] = (row[i] + pred) & 0xFF
-            else:
-                raise CorruptImageError(f"bad PNG filter type {ftype}")
+            row = cls._defilter_row(row, prev, ftype, channels)
             rows.append(row)
             prev = row
         return rows
@@ -445,4 +424,3 @@ class PngDecoder(Decoder):
         else:
             raise CorruptImageError(f"bad PNG filter type {ftype}")
         return row
-

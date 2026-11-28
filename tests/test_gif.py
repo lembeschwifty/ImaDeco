@@ -5,7 +5,10 @@ so the pixel values in these GIFs are independent ground truth.
 import unittest
 
 from imadeco import DECODERS
-from fixtures import make_gif
+try:
+    from tests.fixtures import make_gif
+except ImportError:  # running from inside the tests directory
+    from fixtures import make_gif
 
 
 def decode(gif_bytes):
@@ -61,4 +64,3 @@ class GifBasicTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

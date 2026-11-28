@@ -1,14 +1,19 @@
 """Tests for the v0.2 verify/inspect/salvage CLI surface (ADR-9, ADR-10)."""
 
+import json
 import os
 import tempfile
 import unittest
 from pathlib import Path
 
-import fixtures
 from imadeco import cli
 
-from test_inspect import _png_bytes, _bmp_bytes, _gif_bytes
+try:
+    from tests import fixtures
+    from tests.test_inspect import _png_bytes, _bmp_bytes, _gif_bytes
+except ImportError:  # running from inside the tests directory
+    import fixtures
+    from test_inspect import _png_bytes, _bmp_bytes, _gif_bytes
 
 
 class _CliTest(unittest.TestCase):
@@ -39,7 +44,6 @@ class TestVerifyCli(_CliTest):
         self.assertEqual(rc, 1)
 
     def test_verify_json_output(self):
-        import json
         p = self.write("good.png", _png_bytes())
         import io
         from contextlib import redirect_stdout

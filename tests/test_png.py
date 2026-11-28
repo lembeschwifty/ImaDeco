@@ -8,7 +8,10 @@ import unittest
 
 from imadeco import DECODERS
 from imadeco.encoder.png import encode_png
-from fixtures import make_png
+try:
+    from tests.fixtures import make_png
+except ImportError:  # running from inside the tests directory
+    from fixtures import make_png
 
 
 def decode(png_bytes):
@@ -107,4 +110,3 @@ class PngSecurityTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

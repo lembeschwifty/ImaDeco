@@ -68,9 +68,7 @@ class GifDecoder(Decoder):
                 palette = local_palette or global_palette
                 if palette is None:
                     raise CorruptImageError("GIF frame without any palette")
-                indices = cls._read_lzw(data, pos, fw, fh)
-                pos = indices[1]
-                indices = indices[0]
+                indices, pos = cls._read_lzw(data, pos, fw * fh)
                 if frame is None:
                     frame = (fw, fh, indices, palette, interlaced, transparent_index)
                 continue
@@ -117,13 +115,24 @@ class GifDecoder(Decoder):
             pos += size
         raise CorruptImageError("unterminated GIF extension")
 
+    # ---- LZW: one decoder core, two policies (ADR: dedup of v0.2 pilot
+    # finding). Strict mode raises CorruptImageError on any anomaly and
+    # requires the full pixel count; lenient mode (salvage) returns
+    # whatever decoded before the damage. ----
+
     @staticmethod
-    def _read_lzw(data, pos, width, height):
+    def _lzw_decode(data, pos, need, strict):
+        """Core LZW decompression. Returns (indices, new_pos)."""
+        def fail(msg):
+            if strict:
+                raise CorruptImageError(msg)
+            raise _LenientStop()
+
         if pos >= len(data):
-            raise CorruptImageError("GIF LZW data missing")
+            fail("GIF LZW data missing")
         min_code_size = data[pos]
         if not 2 <= min_code_size <= 8:
-            raise CorruptImageError(f"bad GIF LZW min code size {min_code_size}")
+            fail(f"bad GIF LZW min code size {min_code_size}")
         pos += 1
         stream = bytearray()
         while pos < len(data):
@@ -133,7 +142,6 @@ class GifDecoder(Decoder):
                 break
             stream.extend(data[pos:pos + size])
             pos += size
-        need = width * height
         clear_code = 1 << min_code_size
         end_code = clear_code + 1
         code_size = min_code_size + 1
@@ -158,13 +166,13 @@ class GifDecoder(Decoder):
             if code == end_code:
                 break
             if table is None:
-                raise CorruptImageError("GIF LZW stream did not start with clear code")
+                fail("GIF LZW stream did not start with clear code")
             if code < len(table) and table[code]:
                 entry = table[code]
             elif code == dict_size and prev is not None:
                 entry = prev + (prev[0],)
             else:
-                raise CorruptImageError("corrupt GIF LZW code")
+                fail("corrupt GIF LZW code")
             out.extend(entry)
             if prev is not None:
                 table.append(prev + (entry[0],))
@@ -174,9 +182,24 @@ class GifDecoder(Decoder):
             prev = entry
             if len(out) >= need:
                 break
-        if len(out) < need:
+        if len(out) < need and strict:
             raise CorruptImageError("GIF LZW data produced too few pixels")
         return out[:need], pos
+
+    @classmethod
+    def _read_lzw(cls, data, pos, need):
+        """Strict LZW: full pixel count or raise."""
+        return cls._lzw_decode(data, pos, need, strict=True)
+
+    @classmethod
+    def _lzw_partial(cls, data, pos, need):
+        """Lenient LZW (salvage): decode until the stream ends, return what
+        we got."""
+        try:
+            indices, _pos = cls._lzw_decode(data, pos, need, strict=False)
+            return indices
+        except _LenientStop:
+            return []
 
     @staticmethod
     def _deinterlace(indices, width, height):
@@ -361,60 +384,6 @@ class GifDecoder(Decoder):
             raise UnrecoverableImageError(f"unknown GIF block 0x{b:02X} at {pos}")
         raise UnrecoverableImageError("GIF contains no image frame to salvage")
 
-    @staticmethod
-    def _lzw_partial(data, pos, need):
-        """Lenient LZW: decode until the stream ends, return what we got."""
-        if pos >= len(data):
-            return []
-        min_code_size = data[pos]
-        if not 2 <= min_code_size <= 8:
-            return []
-        pos += 1
-        stream = bytearray()
-        while pos < len(data):
-            size = data[pos]
-            pos += 1
-            if size == 0:
-                break
-            stream.extend(data[pos:pos + size])
-            pos += size
-        clear_code = 1 << min_code_size
-        end_code = clear_code + 1
-        code_size = min_code_size + 1
-        dict_size = end_code + 1
-        table = None
-        out = []
-        bitpos = 0
-        total_bits = len(stream) * 8
-        prev = None
-        while bitpos + code_size <= total_bits and len(out) < need:
-            byte_i = bitpos >> 3
-            chunk = int.from_bytes(stream[byte_i:byte_i + 3].ljust(3, b"\x00"), "little")
-            code = (chunk >> (bitpos & 7)) & ((1 << code_size) - 1)
-            bitpos += code_size
-            if code == clear_code:
-                table = [(i,) for i in range(clear_code)]
-                table += [(), ()]
-                code_size = min_code_size + 1
-                dict_size = end_code + 1
-                prev = None
-                continue
-            if code == end_code:
-                break
-            if table is None:
-                break  # stream did not start with a clear code
-            if code < len(table) and table[code]:
-                entry = table[code]
-            elif code == dict_size and prev is not None:
-                entry = prev + (prev[0],)
-            else:
-                break  # corrupt code: keep what decoded so far
-            out.extend(entry)
-            if prev is not None:
-                table.append(prev + (entry[0],))
-                dict_size += 1
-                if code_size < 12 and dict_size == (1 << code_size):
-                    code_size += 1
-            prev = entry
-        return out[:need]
 
+class _LenientStop(Exception):
+    """Internal: a lenient (salvage) LZW hit damage and keeps what it has."""

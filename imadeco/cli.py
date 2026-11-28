@@ -100,7 +100,7 @@ def cmd_convert(args: argparse.Namespace) -> int:
     image = _decode_file(args.file)
     out = Path(args.output)
     if out.suffix.lower() != ".png":
-        raise ImageDecodeError(f"v0.1 converts to PNG only (got output name {args.output!r})")
+        raise ImageDecodeError(f"ImaDeco converts to PNG only (got output name {args.output!r})")
     png_bytes = encode_png(image.width, image.height, image.color, image.pixels)
     tmp = out.with_suffix(out.suffix + ".tmp")
     tmp.write_bytes(png_bytes)
@@ -237,4 +237,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

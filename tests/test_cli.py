@@ -7,7 +7,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from fixtures import make_bmp24, make_gif, make_png
+try:
+    from tests.fixtures import make_bmp24, make_gif, make_png
+except ImportError:  # running from inside the tests directory
+    from fixtures import make_bmp24, make_gif, make_png
 
 LOGO = Path("/home/user/uploads/7d18773a-8719-4637-84ff-08620d46c0bc-IMG_9736.webp")
 ROOT = Path(__file__).resolve().parents[1]
@@ -89,4 +92,3 @@ class CliTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
